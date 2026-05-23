@@ -47,19 +47,24 @@ def startup():
 
 
 
-# ── v2 API Routes ──
+# ── v2: Orders ──
 
+@app.get("/api/v2/orders")
+async def v2_list_orders(
     store: str | None = None,
+    category: str | None = None,
     month: str | None = None,
+    search: str | None = None,
     limit: int = 50,
     offset: int = 0
 ):
     """List orders with filters."""
     db = get_db()
     query = """
-        SELECT o.*, s.name as store_name
+        SELECT o.*, s.name as store_name, c.name as category_name
         FROM orders o
         JOIN stores s ON o.store_id = s.id
+        LEFT JOIN categories c ON o.category_id = c.id
         WHERE 1=1
     """
     params = []
@@ -67,9 +72,16 @@ def startup():
     if store:
         query += " AND s.name = ?"
         params.append(store)
+    if category:
+        query += " AND LOWER(c.name) = ?"
+        params.append(category.lower())
     if month:
         query += " AND strftime('%Y-%m', o.order_date) = ?"
         params.append(month)
+    if search:
+        query += " AND (s.name LIKE ? OR o.order_number LIKE ?)"
+        params.append(f"%{search}%")
+        params.append(f"%{search}%")
 
     query += " ORDER BY o.order_date DESC LIMIT ? OFFSET ?"
     params.extend([limit, offset])

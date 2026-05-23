@@ -11,8 +11,8 @@ export function useTransactions(initialFilters = {}) {
     setLoading(true);
     setError(null);
     try {
-      const result = await api.getTransactions(filters);
-      setData(result);
+      const orders = await api.getOrders(filters);
+      setData({ transactions: orders, total: orders.length });
     } catch (e) {
       setError(e.message);
     } finally {
@@ -22,9 +22,5 @@ export function useTransactions(initialFilters = {}) {
 
   useEffect(() => { load(); }, [load]);
 
-  const create = async (tx) => { await api.createTransaction(tx); load(); };
-  const update = async (id, tx) => { await api.updateTransaction(id, tx); load(); };
-  const remove = async (id) => { await api.deleteTransaction(id); load(); };
-
-  return { data, filters, setFilters, loading, error, reload: load, create, update, remove };
+  return { data, filters, setFilters, loading, error, reload: load };
 }

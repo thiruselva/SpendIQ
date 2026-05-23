@@ -58,9 +58,40 @@ export default function Overview() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      api.v2GetSummary(), api.v2GetCategoryBreakdown(), api.v2GetMonthlyTrend(), api.getQuickInsights()
+      api.getSummary(), api.getCategoryBreakdown(), api.getMonthlyTrend(), api.getPatterns()
     ]).then(([s, b, t, q]) => {
-      setSummary(s); setBreakdown(b); setTrend(t); setQuick(q);
+      setSummary(s);
+      setBreakdown(b);
+      setTrend(t);
+      
+      const insights = [];
+      if (b && b.length > 0) {
+        const topStore = b[0];
+        insights.push({
+          label: 'Top Store',
+          value: `${topStore.store} ($${(topStore.total || 0).toFixed(2)})`
+        });
+      }
+      if (t && t.length > 0) {
+        const total = t.reduce((sum, item) => sum + (item.total || 0), 0);
+        const avg = total / t.length;
+        insights.push({
+          label: 'Monthly Average',
+          value: `$${avg.toFixed(2)}`
+        });
+      }
+      if (s && s.savings && s.savings.total_monthly_savings > 0) {
+        insights.push({
+          label: 'Savings Available',
+          value: `$${s.savings.total_monthly_savings.toFixed(2)}/mo (${s.savings.products_compared} items)`
+        });
+      } else {
+        insights.push({
+          label: 'Savings Available',
+          value: 'Import more bills to compare'
+        });
+      }
+      setQuick(insights);
     }).catch(console.error).finally(() => setLoading(false));
   }, []);
 

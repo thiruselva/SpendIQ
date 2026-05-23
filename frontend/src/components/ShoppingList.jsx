@@ -25,7 +25,7 @@ export default function ShoppingList() {
     setGenerating(true);
     setMessage('');
     try {
-      const result = await api.v2GenerateShoppingList(store, periodType);
+      const result = await api.generateShoppingList(store, periodType);
       setCurrentList(result);
       
       // Initialize items state
@@ -84,7 +84,7 @@ export default function ShoppingList() {
         };
       });
 
-      await api.v2SubmitFeedback(currentList.list.id, feedback);
+      await api.submitFeedback(currentList.list.id, feedback);
       setMessage('Shopping trip logged! Intelligence engine re-calibrated.');
       setCurrentList(null); // Clear the list
     } catch (e) {

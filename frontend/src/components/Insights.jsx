@@ -20,18 +20,14 @@ export default function Insights() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      api.getTopVendors(),
-      api.getFrequency(),
-      api.getAiProvider(),
-      api.v2GetComparisons(),
-      api.v2GetSavings()
+      api.getPatterns(),
+      api.getSavings(),
+      api.getComparisons(),
     ])
-      .then(([v, f, p, comp, tips]) => {
-        setVendors(v);
-        setFreq(f);
-        setProvider(p);
-        setComparisons(comp || []);
+      .then(([patterns, tips, comp]) => {
+        setVendors(patterns || []);
         setSavingsTips(tips || []);
+        setComparisons(comp || []);
       })
       .catch(console.error).finally(() => setLoading(false));
   }, []);
@@ -39,8 +35,8 @@ export default function Insights() {
   const handleAnalyze = async () => {
     setAiLoading(true);
     try {
-      const res = await api.analyzeSpending();
-      setAiInsight(res.insight || '');
+      const tips = await api.getSavings();
+      setSavingsTips(tips || []);
     } catch (e) { console.error(e); }
     finally { setAiLoading(false); }
   };

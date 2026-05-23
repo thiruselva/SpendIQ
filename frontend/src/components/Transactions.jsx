@@ -30,31 +30,33 @@ export default function Transactions() {
 
   const load = () => {
     setLoading(true);
-    api.getTransactions(filters).then(setData).catch(console.error).finally(() => setLoading(false));
+    api.getOrders(filters).then(orders => setData({ transactions: orders, total: orders.length }))
+      .catch(console.error).finally(() => setLoading(false));
   };
 
   useEffect(() => { load(); }, [filters]);
   useEffect(() => {
-    Promise.all([api.getCategories(), api.getSources(), api.getMonths()]).then(([c, s, m]) => {
-      setCategories(c); setSources(s); setMonths(m);
-    });
+    // V2 stores replace the old categories/sources/months filters
+    setCategories(['grocery', 'food', 'shopping', 'subscription', 'health', 'dental', 'other']);
+    setSources(['Costco', 'Walmart']);
   }, []);
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    await api.createTransaction({ ...newTx, amount: newTx.amount ? parseFloat(newTx.amount) : null });
+    // V2: use importBill for file-based imports; manual adds not supported in v2 schema
     setShowAdd(false);
     setNewTx({ date: new Date().toISOString().split('T')[0], vendor: '', amount: '', category: '', source: 'manual' });
     load();
   };
 
   const handleSaveAmount = async (id) => {
-    await api.updateTransaction(id, { amount: parseFloat(editAmount), is_verified: 1 });
+    // V2: amounts are stored per order_item; order-level edits not supported
     setEditId(null); load();
   };
 
   const handleDelete = async (id) => {
-    if (confirm('Delete this transaction?')) { await api.deleteTransaction(id); load(); }
+    // V2: deletion not exposed in current API
+    load();
   };
 
   const toggleExpand = async (id) => {
@@ -63,7 +65,7 @@ export default function Transactions() {
     if (!lineItems[id]) {
       setLoadingItems(true);
       try {
-        const items = await api.getTransactionItems(id);
+        const items = await api.getOrderItems(id);
         setLineItems(prev => ({ ...prev, [id]: items }));
       } catch (err) { console.error(err); }
       setLoadingItems(false);

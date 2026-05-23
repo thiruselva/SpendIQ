@@ -88,7 +88,7 @@ export default function Import() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const res = await api.v2ImportBill(file);
+        const res = await api.importBill(file);
         if (res.error) {
           newResults.push({ file: file.name, status: 'error', message: res.error });
         } else if (res.status === 'skipped') {

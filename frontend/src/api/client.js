@@ -1,4 +1,4 @@
-const BASE = '/api';
+const BASE = '/api/v2';
 
 async function request(url, options = {}) {
   const res = await fetch(`${BASE}${url}`, {
@@ -13,86 +13,38 @@ async function request(url, options = {}) {
 }
 
 export const api = {
-  // Transactions
-  getTransactions: (params = {}) => {
+  // ── Orders (replaces V1 transactions) ──
+  getOrders: (params = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([,v]) => v)).toString();
-    return request(`/transactions${q ? '?' + q : ''}`);
+    return request(`/orders${q ? '?' + q : ''}`);
   },
-  createTransaction: (data) => request('/transactions', { method: 'POST', body: JSON.stringify(data) }),
-  updateTransaction: (id, data) => request(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteTransaction: (id) => request(`/transactions/${id}`, { method: 'DELETE' }),
-  getTransactionItems: (id) => request(`/transactions/${id}/items`),
+  getOrderItems: (id) => request(`/orders/${id}/items`),
 
-  // Dashboard
+  // ── Import ──
+  importBill: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return fetch(`${BASE}/import/bills`, { method: 'POST', body: form }).then(r => r.json());
+  },
+
+  // ── Products ──
+  getProducts: (search = '') => request(`/products${search ? '?search=' + encodeURIComponent(search) : ''}`),
+  getProductPrices: (id) => request(`/products/${id}/prices`),
+
+  // ── Dashboard ──
   getSummary: () => request('/dashboard/summary'),
   getCategoryBreakdown: () => request('/dashboard/category-breakdown'),
   getMonthlyTrend: () => request('/dashboard/monthly-trend'),
 
-  // Insights
-  getTopVendors: (days = 90) => request(`/insights/top-vendors?days=${days}`),
-  getFrequency: () => request('/insights/frequency'),
-  getQuickInsights: () => request('/insights/quick'),
+  // ── Insights ──
+  getPatterns: (store = '') => request(`/insights/patterns${store ? '?store=' + encodeURIComponent(store) : ''}`),
+  getComparisons: () => request('/insights/comparisons'),
+  getSavings: () => request('/insights/savings'),
 
-  // Shopping List
-  getShoppingList: (type) => request(`/shopping-list${type ? '?list_type=' + type : ''}`),
-  addShoppingItem: (data) => request('/shopping-list', { method: 'POST', body: JSON.stringify(data) }),
-  updateShoppingItem: (id, data) => request(`/shopping-list/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteShoppingItem: (id) => request(`/shopping-list/${id}`, { method: 'DELETE' }),
-
-  // AI
-  analyzeSpending: () => request('/ai/analyze', { method: 'POST' }),
-  generateShoppingList: () => request('/ai/shopping-list', { method: 'POST' }),
-  getAiProvider: () => request('/ai/provider'),
-
-  // Import
-  importPdf: (file) => {
-    const form = new FormData();
-    form.append('file', file);
-    return fetch(`${BASE}/import/pdf`, { method: 'POST', body: form }).then(r => r.json());
-  },
-  importCsv: (file) => {
-    const form = new FormData();
-    form.append('file', file);
-    return fetch(`${BASE}/import/csv`, { method: 'POST', body: form }).then(r => r.json());
-  },
-
-  // Utility
-  getCategories: () => request('/categories'),
-  getSources: () => request('/sources'),
-  getMonths: () => request('/months'),
-
-  // ── v2: Orders ──
-  v2GetOrders: (params = {}) => {
-    const q = new URLSearchParams(Object.entries(params).filter(([,v]) => v)).toString();
-    return request(`/v2/orders${q ? '?' + q : ''}`);
-  },
-  v2GetOrderItems: (id) => request(`/v2/orders/${id}/items`),
-
-  // ── v2: Import ──
-  v2ImportBill: (file) => {
-    const form = new FormData();
-    form.append('file', file);
-    return fetch(`${BASE}/v2/import/bills`, { method: 'POST', body: form }).then(r => r.json());
-  },
-
-  // ── v2: Products ──
-  v2GetProducts: (search = '') => request(`/v2/products${search ? '?search=' + encodeURIComponent(search) : ''}`),
-  v2GetProductPrices: (id) => request(`/v2/products/${id}/prices`),
-
-  // ── v2: Dashboard ──
-  v2GetSummary: () => request('/v2/dashboard/summary'),
-  v2GetCategoryBreakdown: () => request('/v2/dashboard/category-breakdown'),
-  v2GetMonthlyTrend: () => request('/v2/dashboard/monthly-trend'),
-
-  // ── v2: Insights ──
-  v2GetPatterns: (store = '') => request(`/v2/insights/patterns${store ? '?store=' + encodeURIComponent(store) : ''}`),
-  v2GetComparisons: () => request('/v2/insights/comparisons'),
-  v2GetSavings: () => request('/v2/insights/savings'),
-
-  // ── v2: Shopping Lists ──
-  v2GenerateShoppingList: (store = 'Costco', periodType = 'weekly') =>
-    request(`/v2/shopping-list/generate?store=${encodeURIComponent(store)}&period_type=${periodType}`, { method: 'POST' }),
-  v2GetShoppingList: (listId) => request(`/v2/shopping-list/${listId}`),
-  v2SubmitFeedback: (listId, feedback) =>
-    request(`/v2/shopping-list/${listId}/feedback`, { method: 'PUT', body: JSON.stringify(feedback) }),
+  // ── Shopping Lists ──
+  generateShoppingList: (store = 'Costco', periodType = 'weekly') =>
+    request(`/shopping-list/generate?store=${encodeURIComponent(store)}&period_type=${periodType}`, { method: 'POST' }),
+  getShoppingList: (listId) => request(`/shopping-list/${listId}`),
+  submitFeedback: (listId, feedback) =>
+    request(`/shopping-list/${listId}/feedback`, { method: 'PUT', body: JSON.stringify(feedback) }),
 };
