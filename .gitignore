@@ -12,10 +12,10 @@ dist/
 build/
 
 # Data (local only)
-**/data/spendiq.db*
-**/data/spendiq_demo.db*
-**/data/extracted.json
-**/data/invoices/
+**/data/spendiq*.db*
+**/data/spendiq_demo*.db*
+**/data/extracted*.json
+**/data/invoices*.*
 
 # Environment
 .env
