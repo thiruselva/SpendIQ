@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, ArrowLeftRight, Lightbulb, ShoppingCart, Upload, TrendingUp, Menu, X } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Lightbulb, ShoppingCart, Upload, TrendingUp, Menu, X, Scale } from 'lucide-react';
 import Overview from './components/Overview';
 import Transactions from './components/Transactions';
 import Insights from './components/Insights';
 import ShoppingList from './components/ShoppingList';
 import Import from './components/Import';
+import PriceCompare from './components/PriceCompare';
 import { cn } from '@/lib/utils';
 import './index.css';
 
@@ -14,6 +15,7 @@ const NAV = [
   { to: '/transactions',  icon: ArrowLeftRight,  label: 'Transactions' },
   { to: '/insights',      icon: Lightbulb,       label: 'Insights'     },
   { to: '/shopping',      icon: ShoppingCart,    label: 'Shopping List'},
+  { to: '/price-compare', icon: Scale,           label: 'Price Compare'},
   { to: '/import',        icon: Upload,          label: 'Import'       },
 ];
 
@@ -128,6 +130,7 @@ export default function App() {
           <Route path="/transactions" element={<Transactions />} />
           <Route path="/insights"     element={<Insights />} />
           <Route path="/shopping"     element={<ShoppingList />} />
+          <Route path="/price-compare" element={<PriceCompare />} />
           <Route path="/import"       element={<Import />} />
         </Routes>
       </Layout>

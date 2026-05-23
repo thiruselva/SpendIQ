@@ -60,4 +60,39 @@ export const api = {
   getCategories: () => request('/categories'),
   getSources: () => request('/sources'),
   getMonths: () => request('/months'),
+
+  // ── v2: Orders ──
+  v2GetOrders: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([,v]) => v)).toString();
+    return request(`/v2/orders${q ? '?' + q : ''}`);
+  },
+  v2GetOrderItems: (id) => request(`/v2/orders/${id}/items`),
+
+  // ── v2: Import ──
+  v2ImportBill: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return fetch(`${BASE}/v2/import/bills`, { method: 'POST', body: form }).then(r => r.json());
+  },
+
+  // ── v2: Products ──
+  v2GetProducts: (search = '') => request(`/v2/products${search ? '?search=' + encodeURIComponent(search) : ''}`),
+  v2GetProductPrices: (id) => request(`/v2/products/${id}/prices`),
+
+  // ── v2: Dashboard ──
+  v2GetSummary: () => request('/v2/dashboard/summary'),
+  v2GetCategoryBreakdown: () => request('/v2/dashboard/category-breakdown'),
+  v2GetMonthlyTrend: () => request('/v2/dashboard/monthly-trend'),
+
+  // ── v2: Insights ──
+  v2GetPatterns: (store = '') => request(`/v2/insights/patterns${store ? '?store=' + encodeURIComponent(store) : ''}`),
+  v2GetComparisons: () => request('/v2/insights/comparisons'),
+  v2GetSavings: () => request('/v2/insights/savings'),
+
+  // ── v2: Shopping Lists ──
+  v2GenerateShoppingList: (store = 'Costco', periodType = 'weekly') =>
+    request(`/v2/shopping-list/generate?store=${encodeURIComponent(store)}&period_type=${periodType}`, { method: 'POST' }),
+  v2GetShoppingList: (listId) => request(`/v2/shopping-list/${listId}`),
+  v2SubmitFeedback: (listId, feedback) =>
+    request(`/v2/shopping-list/${listId}/feedback`, { method: 'PUT', body: JSON.stringify(feedback) }),
 };

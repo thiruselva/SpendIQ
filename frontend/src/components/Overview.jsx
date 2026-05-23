@@ -7,11 +7,12 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { DollarSign, ShoppingBag, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
+import { DollarSign, ShoppingBag, TrendingUp, Calendar, AlertCircle, TrendingDown } from 'lucide-react';
 
 const CATEGORY_COLORS = {
   grocery: '#10b981', food: '#f97316', shopping: '#3b82f6',
   subscription: '#a855f7', health: '#f43f5e', dental: '#06b6d4', other: '#6b7280',
+  Costco: '#3b82f6', Walmart: '#f59e0b',
 };
 
 function KpiCard({ title, value, sub, icon: Icon, color }) {
@@ -57,7 +58,7 @@ export default function Overview() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      api.getSummary(), api.getCategoryBreakdown(), api.getMonthlyTrend(), api.getQuickInsights()
+      api.v2GetSummary(), api.v2GetCategoryBreakdown(), api.v2GetMonthlyTrend(), api.getQuickInsights()
     ]).then(([s, b, t, q]) => {
       setSummary(s); setBreakdown(b); setTrend(t); setQuick(q);
     }).catch(console.error).finally(() => setLoading(false));
@@ -66,8 +67,8 @@ export default function Overview() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+          {Array.from({ length: 5 }).map((_, i) => (
             <Card key={i}><CardContent className="pt-6"><Skeleton className="h-20" /></CardContent></Card>
           ))}
         </div>
@@ -79,16 +80,37 @@ export default function Overview() {
     );
   }
 
-  const pieData = breakdown.map(b => ({ name: b.category, value: b.total, color: CATEGORY_COLORS[b.category] || '#6b7280' }));
+  const showSavings = summary?.savings && summary.savings.total_monthly_savings > 0;
+  const pieData = breakdown.map(b => ({ name: b.store || b.category, value: b.total, color: CATEGORY_COLORS[b.store] || CATEGORY_COLORS[b.category] || '#6b7280' }));
 
   return (
     <div className="space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 ${showSavings ? 'xl:grid-cols-5' : 'xl:grid-cols-4'} gap-4`}>
         <KpiCard title="Total Spent (30d)" value={summary ? `$${summary.total_30d?.toFixed(2) || '0.00'}` : '-'} sub="Last 30 days" icon={DollarSign} color="bg-blue-500" />
         <KpiCard title="Total Spent (90d)" value={summary ? `$${summary.total_90d?.toFixed(2) || '0.00'}` : '-'} sub="Last 90 days" icon={TrendingUp} color="bg-emerald-500" />
         <KpiCard title="Transactions" value={summary?.count_90d ?? '-'} sub="Last 90 days" icon={ShoppingBag} color="bg-orange-500" />
-        <KpiCard title="Avg / Transaction" value={summary ? `$${summary.avg_90d?.toFixed(2) || '0.00'}` : '-'} sub="90-day average" icon={Calendar} color="bg-purple-500" />
+        <KpiCard title="Avg / Transaction" value={summary ? `$${summary.avg_order?.toFixed(2) || '0.00'}` : '-'} sub="90-day average" icon={Calendar} color="bg-purple-500" />
+        
+        {/* Savings Potential KPI */}
+        {showSavings && (
+          <Card>
+            <CardContent className="pt-6 flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Monthly Savings Potential</p>
+                <p className="text-2xl font-bold mt-1 text-emerald-600">
+                  ${summary.savings.total_monthly_savings.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  across {summary.savings.products_compared} products
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-emerald-500 shrink-0">
+                <TrendingDown size={22} className="text-white" />
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Charts Row */}
@@ -141,17 +163,17 @@ export default function Overview() {
         {/* Pie Chart */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-base">Spending by Category</CardTitle>
+            <CardTitle className="text-base">Spending by Store</CardTitle>
           </CardHeader>
           <CardContent>
             {pieData.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-52 text-muted-foreground gap-2">
                 <AlertCircle size={32} strokeWidth={1.5} />
-                <p className="text-sm">No category data</p>
+                <p className="text-sm">No store data yet</p>
               </div>
             ) : (
               <>
-                <div role="img" aria-label="Pie chart showing spending by category. Visual representation of category breakdown.">
+                <div role="img" aria-label="Pie chart showing spending by store. Visual representation of store breakdown.">
                   <ResponsiveContainer width="100%" height={220}>
                     <PieChart>
                       <Pie data={pieData} cx="50%" cy="45%" innerRadius={55} outerRadius={80} dataKey="value" paddingAngle={2}>
@@ -165,17 +187,17 @@ export default function Overview() {
                   </ResponsiveContainer>
                 </div>
                 <table className="sr-only">
-                  <caption>Spending by Category</caption>
+                  <caption>Spending by Store</caption>
                   <thead>
                     <tr>
-                      <th scope="col">Category</th>
+                      <th scope="col">Store</th>
                       <th scope="col">Total Spent</th>
                     </tr>
                   </thead>
                   <tbody>
                     {breakdown.map(b => (
-                      <tr key={b.category}>
-                        <td>{b.category}</td>
+                      <tr key={b.store || b.category}>
+                        <td>{b.store || b.category}</td>
                         <td>${(b.total || 0).toFixed(2)}</td>
                       </tr>
                     ))}

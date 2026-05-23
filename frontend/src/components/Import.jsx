@@ -27,14 +27,24 @@ function FileItem({ file, onRemove }) {
 
 function ResultCard({ result }) {
   const success = result.status === 'ok';
+  const skipped = result.status === 'skipped';
   return (
-    <div className={cn('flex items-start gap-3 p-3 rounded-lg border text-sm', success ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200')}>
-      {success
-        ? <CheckCircle size={16} className="text-emerald-600 shrink-0 mt-0.5" />
-        : <XCircle size={16} className="text-red-600 shrink-0 mt-0.5" />}
+    <div className={cn(
+      'flex items-start gap-3 p-3 rounded-lg border text-sm',
+      success ? 'bg-emerald-50 border-emerald-200' : skipped ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'
+    )}>
+      {success && <CheckCircle size={16} className="text-emerald-600 shrink-0 mt-0.5" />}
+      {skipped && <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />}
+      {!success && !skipped && <XCircle size={16} className="text-red-600 shrink-0 mt-0.5" />}
       <div>
-        <p className={`font-medium ${success ? 'text-emerald-800' : 'text-red-800'}`}>{result.file}</p>
-        <p className={`text-xs mt-0.5 ${success ? 'text-emerald-600' : 'text-red-600'}`}>{result.message}</p>
+        <p className={cn(
+          'font-medium',
+          success ? 'text-emerald-800' : skipped ? 'text-amber-800' : 'text-red-800'
+        )}>{result.file}</p>
+        <p className={cn(
+          'text-xs mt-0.5',
+          success ? 'text-emerald-600' : skipped ? 'text-amber-600' : 'text-red-600'
+        )}>{result.message}</p>
       </div>
     </div>
   );
@@ -78,9 +88,18 @@ export default function Import() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const isPdf = file.name.endsWith('.pdf');
-        const res = isPdf ? await api.importPdf(file) : await api.importCsv(file);
-        newResults.push({ file: file.name, status: res.error ? 'error' : 'ok', message: res.message || res.error || 'Imported successfully' });
+        const res = await api.v2ImportBill(file);
+        if (res.error) {
+          newResults.push({ file: file.name, status: 'error', message: res.error });
+        } else if (res.status === 'skipped') {
+          newResults.push({ file: file.name, status: 'skipped', message: 'Already imported (duplicate order)' });
+        } else {
+          newResults.push({
+            file: file.name,
+            status: 'ok',
+            message: `Imported ${res.items_count} items from ${res.store} ($${res.order_total?.toFixed(2)})`
+          });
+        }
       } catch (e) {
         newResults.push({ file: file.name, status: 'error', message: e.message || 'Upload failed' });
       }
@@ -92,7 +111,7 @@ export default function Import() {
     setUploading(false);
   };
 
-  const successCount = results.filter(r => r.status === 'ok').length;
+  const successCount = results.filter(r => r.status === 'ok' || r.status === 'skipped').length;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">

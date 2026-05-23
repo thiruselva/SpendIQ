@@ -5,20 +5,34 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, TrendingUp, BarChart2, Bot, RefreshCw, AlertCircle } from 'lucide-react';
+import { Sparkles, TrendingUp, BarChart2, Bot, RefreshCw, AlertCircle, Scale } from 'lucide-react';
 
 export default function Insights() {
   const [vendors, setVendors] = useState([]);
   const [freq, setFreq] = useState([]);
   const [aiInsight, setAiInsight] = useState('');
   const [provider, setProvider] = useState(null);
+  const [comparisons, setComparisons] = useState([]);
+  const [savingsTips, setSavingsTips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([api.getTopVendors(), api.getFrequency(), api.getAiProvider()])
-      .then(([v, f, p]) => { setVendors(v); setFreq(f); setProvider(p); })
+    Promise.all([
+      api.getTopVendors(),
+      api.getFrequency(),
+      api.getAiProvider(),
+      api.v2GetComparisons(),
+      api.v2GetSavings()
+    ])
+      .then(([v, f, p, comp, tips]) => {
+        setVendors(v);
+        setFreq(f);
+        setProvider(p);
+        setComparisons(comp || []);
+        setSavingsTips(tips || []);
+      })
       .catch(console.error).finally(() => setLoading(false));
   }, []);
 
@@ -158,6 +172,89 @@ export default function Insights() {
           )}
         </CardContent>
       </Card>
+
+      {/* Price Compare & Savings Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Price Comparison Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Scale size={18} className="text-emerald-500" /> Price Comparison ($/unit)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {comparisons.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                <AlertCircle size={32} strokeWidth={1.5} />
+                <p className="text-sm">No comparisons available yet. Import bills from multiple stores to see price comparisons.</p>
+              </div>
+            ) : (
+              comparisons.map(item => (
+                <div key={item.product_id} className="space-y-2 p-3 rounded-lg border">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{item.canonical_name}</span>
+                    <Badge variant="outline" className="text-emerald-600 bg-emerald-50 border-emerald-200">
+                      Save ${item.potential_monthly_saving?.toFixed(2)}/mo
+                    </Badge>
+                  </div>
+                  {/* Per-store bars */}
+                  {Object.entries(JSON.parse(item.store_breakdown)).map(([storeId, data]) => (
+                    <div key={storeId} className="flex items-center gap-3">
+                      <span className="text-xs w-20 text-muted-foreground truncate">{data.store_name}</span>
+                      <div className="flex-1 bg-muted rounded-full h-3 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            data.avg_price_per_std_unit === item.cheapest_price_per_unit
+                              ? 'bg-emerald-500' : 'bg-orange-400'
+                          }`}
+                          style={{ width: `${(data.avg_price_per_std_unit / item.most_expensive_price_per_unit) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-mono w-24 text-right">
+                        ${data.avg_price_per_std_unit.toFixed(3)}/{item.standard_unit}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Savings Opportunities */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles size={18} className="text-emerald-500" /> Savings Opportunities
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {savingsTips.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
+                <AlertCircle size={32} strokeWidth={1.5} />
+                <p className="text-sm">No savings opportunities found yet. Import more data to enable cross-store analytics.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {savingsTips.map(tip => (
+                  <div key={tip.product_id} className="p-3 rounded-lg bg-emerald-50/50 border border-emerald-100 flex items-start gap-3">
+                    <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <TrendingUp size={14} className="text-emerald-600" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium">{tip.canonical_name}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Buy at <strong className="text-emerald-700">{tip.cheapest_store_name}</strong> instead of <strong className="text-orange-700">{tip.most_expensive_store_name}</strong>.
+                        Save <strong className="text-emerald-700">${tip.potential_monthly_saving?.toFixed(2)}/month</strong> (cheaper by {tip.price_diff_pct}% per {tip.standard_unit}).
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

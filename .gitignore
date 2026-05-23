@@ -35,6 +35,9 @@ release/
 # Agentic Workspace
 .antigravitycli/
 
+# Planning docs
+*.docx
+
 # Personal spending / receipt files
 backend/resources/costco/*.pdf
 backend/resources/walmart/*.xlsx
